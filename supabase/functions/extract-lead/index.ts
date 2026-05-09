@@ -24,7 +24,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
         messages: [
-          { role: "system", content: `You extract structured construction site lead data from a sales rep's voice note. Today is ${today}. Return only fields you are confident about. Convert relative dates ("next Tuesday") into YYYY-MM-DD.` },
+          { role: "system", content: `You extract structured construction site lead data from a sales rep's voice note. Today is ${today}. Return only fields you are confident about. Convert relative dates ("next Tuesday") into YYYY-MM-DD. For "exact_requirement", capture the full detailed material requirement verbatim — include quantities, brands, specifications, and customer comments (e.g. "500 kg Birla White cement and 100 litres Dr Fixit LW Plus"). "products" should still contain the matching category tags.` },
           { role: "user", content: transcript },
         ],
         tools: [{
@@ -44,6 +44,7 @@ Deno.serve(async (req) => {
                 products: { type: "array", items: { type: "string", enum: PRODUCTS } },
                 priority: { type: "string", enum: ["Hot","Warm","Cold"] },
                 followup_date: { type: "string", description: "YYYY-MM-DD" },
+                exact_requirement: { type: "string", description: "Detailed material requirement: quantities, brands, specifications, customer comments — verbatim from the voice note." },
                 notes: { type: "string" },
               },
               additionalProperties: false,
