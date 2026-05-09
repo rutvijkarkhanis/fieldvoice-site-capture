@@ -29,6 +29,7 @@ type Form = {
   project_type: string; project_size_sqft: string; num_floors: string; estimated_budget: string; expected_completion: string;
   stage: string; status: string; priority: string;
   notes: string;
+  exact_requirement: string;
   followup_date: string;
 };
 
@@ -37,7 +38,7 @@ const empty: Form = {
   company_name: "", architect_name: "", contractor_name: "",
   site_address: "", landmark: "", latitude: "", longitude: "",
   project_type: "", project_size_sqft: "", num_floors: "", estimated_budget: "", expected_completion: "",
-  stage: "", status: "New", priority: "Warm", notes: "", followup_date: "",
+  stage: "", status: "New", priority: "Warm", notes: "", exact_requirement: "", followup_date: "",
 };
 
 function AddLead() {
@@ -95,6 +96,7 @@ function AddLead() {
       stage: x.stage ?? p.stage,
       priority: x.priority ?? p.priority,
       followup_date: x.followup_date ?? p.followup_date,
+      exact_requirement: x.exact_requirement ?? p.exact_requirement,
       notes: [p.notes, x.notes].filter(Boolean).join("\n"),
     }));
     if (Array.isArray(x.products)) setProducts((p) => Array.from(new Set([...p, ...x.products])));
@@ -159,6 +161,7 @@ function AddLead() {
         status: f.status,
         priority: f.priority,
         notes: f.notes || null,
+        exact_requirement: f.exact_requirement || null,
       };
 
       const { data: lead, error } = await supabase.from("leads").insert(payload).select().single();
@@ -303,6 +306,17 @@ function AddLead() {
             </button>
           ))}
         </div>
+      </Section>
+
+      {/* Exact Requirement */}
+      <Section title="Exact Requirement / Quantity Needed">
+        <p className="text-xs text-muted-foreground">Record the exact quantity, brand, specifications, and any customer comments.</p>
+        <Textarea
+          value={f.exact_requirement}
+          onChange={(e) => set("exact_requirement", e.target.value)}
+          rows={4}
+          placeholder="e.g. 500 kg Birla White wall putty, 20 bags JK White Cement, 100 litres Dr. Fixit LW+"
+        />
       </Section>
 
       {/* Photos */}
