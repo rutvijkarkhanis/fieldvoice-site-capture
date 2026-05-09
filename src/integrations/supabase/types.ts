@@ -99,6 +99,36 @@ export type Database = {
           },
         ]
       }
+      lead_edit_history: {
+        Row: {
+          changed_by: string | null
+          created_at: string
+          field_name: string
+          id: string
+          lead_id: string
+          new_value: string | null
+          old_value: string | null
+        }
+        Insert: {
+          changed_by?: string | null
+          created_at?: string
+          field_name: string
+          id?: string
+          lead_id: string
+          new_value?: string | null
+          old_value?: string | null
+        }
+        Update: {
+          changed_by?: string | null
+          created_at?: string
+          field_name?: string
+          id?: string
+          lead_id?: string
+          new_value?: string | null
+          old_value?: string | null
+        }
+        Relationships: []
+      }
       lead_products: {
         Row: {
           created_at: string
@@ -132,6 +162,7 @@ export type Database = {
         Row: {
           alternate_phone: string | null
           architect_name: string | null
+          assigned_to: string | null
           company_name: string | null
           contact_name: string | null
           contact_phone: string | null
@@ -158,6 +189,7 @@ export type Database = {
         Insert: {
           alternate_phone?: string | null
           architect_name?: string | null
+          assigned_to?: string | null
           company_name?: string | null
           contact_name?: string | null
           contact_phone?: string | null
@@ -184,6 +216,7 @@ export type Database = {
         Update: {
           alternate_phone?: string | null
           architect_name?: string | null
+          assigned_to?: string | null
           company_name?: string | null
           contact_name?: string | null
           contact_phone?: string | null
