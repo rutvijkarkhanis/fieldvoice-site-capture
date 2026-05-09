@@ -15,6 +15,7 @@ import { cn } from "@/lib/utils";
 import { DuplicateWarning } from "@/components/leads/DuplicateWarning";
 import { Save, Loader2, Trash2, Camera } from "lucide-react";
 import { useAuth } from "@/lib/auth";
+import { compressImage } from "@/lib/image-utils";
 
 export const Route = createFileRoute("/leads/$id/edit")({
   head: () => ({ meta: [{ title: "Edit Lead — Cunstruct CRM" }] }),
@@ -201,9 +202,10 @@ function EditLead() {
 
       // Photos
       for (const file of newPhotos) {
-        const ext = file.name.split(".").pop() ?? "jpg";
+        const compressed = await compressImage(file).catch(() => file);
+        const ext = compressed.name.split(".").pop() ?? "jpg";
         const path = `${user.id}/${id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-        const { error: upErr } = await supabase.storage.from("lead-photos").upload(path, file, { contentType: file.type });
+        const { error: upErr } = await supabase.storage.from("lead-photos").upload(path, compressed, { contentType: compressed.type });
         if (upErr) { toast.error(upErr.message); continue; }
         const { data: pub } = supabase.storage.from("lead-photos").getPublicUrl(path);
         await supabase.from("photos").insert({ lead_id: id, user_id: user.id, image_url: pub.publicUrl, image_type: "site" });

@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { memo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -8,7 +9,7 @@ import { leadScore } from "@/lib/lead-utils";
 import { Phone, MapPin, MessageCircle, ExternalLink, Pencil, Calendar, Clock } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 
-export function LeadCard({
+function LeadCardImpl({
   lead, nextFollowup, selectable, selected, onToggle,
 }: {
   lead: any;
@@ -91,3 +92,11 @@ export function LeadCard({
     </Card>
   );
 }
+
+export const LeadCard = memo(LeadCardImpl, (a, b) =>
+  a.lead.id === b.lead.id &&
+  a.lead.updated_at === b.lead.updated_at &&
+  a.selected === b.selected &&
+  a.selectable === b.selectable &&
+  (a.nextFollowup?.due_date ?? null) === (b.nextFollowup?.due_date ?? null)
+);

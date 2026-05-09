@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { EditHistoryList } from "@/components/leads/EditHistoryList";
 import { useAuth } from "@/lib/auth";
+import { compressImage } from "@/lib/image-utils";
 
 export const Route = createFileRoute("/leads/$id")({
   head: () => ({ meta: [{ title: "Lead — Cunstruct CRM" }] }),
@@ -211,9 +212,10 @@ function QuickActions({ leadId, userId, onChange }: { leadId: string; userId?: s
     if (!userId || files.length === 0) return;
     setBusy(true);
     for (const file of files) {
-      const ext = file.name.split(".").pop() ?? "jpg";
+      const compressed = await compressImage(file).catch(() => file);
+      const ext = compressed.name.split(".").pop() ?? "jpg";
       const path = `${userId}/${leadId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-      const { error: upErr } = await supabase.storage.from("lead-photos").upload(path, file, { contentType: file.type });
+      const { error: upErr } = await supabase.storage.from("lead-photos").upload(path, compressed, { contentType: compressed.type });
       if (upErr) { toast.error(upErr.message); continue; }
       const { data: pub } = supabase.storage.from("lead-photos").getPublicUrl(path);
       await supabase.from("photos").insert({ lead_id: leadId, user_id: userId, image_url: pub.publicUrl, image_type: "site" });

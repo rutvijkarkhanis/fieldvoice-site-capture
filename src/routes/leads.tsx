@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/layout/AppShell";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { useMemo, useState } from "react";
 import { priorityClass, statusClass, STATUSES } from "@/lib/constants";
-import { Search, Phone, MapPin, Trash2, Download, RefreshCw, ChevronUp, ChevronDown } from "lucide-react";
+import { Search, Phone, MapPin, Trash2, Download, RefreshCw, ChevronUp, ChevronDown, Loader2 } from "lucide-react";
 import { useIsAdmin } from "@/lib/use-role";
 import { LeadCard } from "@/components/leads/LeadCard";
 import { LeadFilters, emptyFilters, type LeadFilterState, type SortKey } from "@/components/leads/LeadFilters";
@@ -16,6 +16,8 @@ import { exportLeadsCSV, leadScore } from "@/lib/lead-utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format, formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
+import { useDebounced } from "@/lib/use-debounced";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
@@ -26,113 +28,160 @@ export const Route = createFileRoute("/leads")({
   component: () => <AppShell title="All Leads" wide><LeadsList /></AppShell>,
 });
 
+const PAGE_SIZE = 30;
 const PRIORITY_RANK: Record<string, number> = { Hot: 0, Warm: 1, Cold: 2 };
+
+// Slim column list — never SELECT *
+const LIST_COLS =
+  "id,site_name,contact_name,contact_phone,site_address,stage,status,priority,latitude,longitude,assigned_to,owner_id,estimated_budget,created_at,updated_at";
 
 function LeadsList() {
   const qc = useQueryClient();
   const isAdmin = useIsAdmin();
-  const [q, setQ] = useState("");
+  const [qRaw, setQRaw] = useState("");
+  const q = useDebounced(qRaw, 300);
   const [filters, setFilters] = useState<LeadFilterState>(emptyFilters);
   const [sort, setSort] = useState<SortKey>("updated");
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["leads-full"],
+  // Reps + product list (cached)
+  const { data: meta } = useQuery({
+    queryKey: ["leads-meta"],
+    staleTime: 5 * 60_000,
     queryFn: async () => {
-      const [{ data: leads }, { data: lps }, { data: fus }, { data: profiles }] = await Promise.all([
-        supabase.from("leads").select("*").order("updated_at", { ascending: false }),
-        supabase.from("lead_products").select("lead_id, product"),
-        supabase.from("followups").select("lead_id, due_date, status").eq("status", "Pending").order("due_date"),
+      const [{ data: profiles }] = await Promise.all([
         supabase.from("profiles").select("id, full_name"),
       ]);
-      const productsByLead: Record<string, string[]> = {};
-      (lps ?? []).forEach((p: any) => {
-        (productsByLead[p.lead_id] ||= []).push(p.product);
-      });
-      const nextFu: Record<string, { due_date: string }> = {};
-      (fus ?? []).forEach((f: any) => { if (!nextFu[f.lead_id]) nextFu[f.lead_id] = { due_date: f.due_date }; });
-      const profileMap: Record<string, string> = {};
-      (profiles ?? []).forEach((p: any) => { profileMap[p.id] = p.full_name || p.id.slice(0, 8); });
-      return { leads: leads ?? [], productsByLead, nextFu, profiles: profiles ?? [], profileMap };
+      return { profiles: profiles ?? [] };
     },
   });
 
-  const filtered = useMemo(() => {
-    if (!data) return [];
-    const s = q.toLowerCase().trim();
-    return data.leads.filter((l: any) => {
+  const serverSort = sort === "score" || sort === "followup" ? "updated" : sort;
+
+  const queryKey = ["leads-paged", { q, filters, sort: serverSort }];
+  const { data, isLoading, fetchNextPage, hasNextPage, isFetchingNextPage } = useInfiniteQuery({
+    queryKey,
+    initialPageParam: 0,
+    queryFn: async ({ pageParam }) => {
+      let query = supabase.from("leads").select(LIST_COLS, { count: "exact" });
+
+      // Search
+      const s = q.trim();
       if (s) {
-        const hay = [l.site_name, l.contact_name, l.contact_phone, l.site_address, l.architect_name, l.contractor_name]
-          .filter(Boolean).join(" ").toLowerCase();
-        if (!hay.includes(s)) return false;
-      }
-      if (filters.stage && l.stage !== filters.stage) return false;
-      if (filters.status && l.status !== filters.status) return false;
-      if (filters.priority && l.priority !== filters.priority) return false;
-      if (filters.assignedTo && l.assigned_to !== filters.assignedTo) return false;
-      if (filters.product && !(data.productsByLead[l.id] ?? []).includes(filters.product)) return false;
-      if (filters.createdFrom && new Date(l.created_at) < new Date(filters.createdFrom)) return false;
-      if (filters.createdTo && new Date(l.created_at) > new Date(filters.createdTo + "T23:59:59")) return false;
-      return true;
-    });
-  }, [data, q, filters]);
-
-  const sorted = useMemo(() => {
-    if (!data) return [];
-    const arr = [...filtered];
-    arr.sort((a: any, b: any) => {
-      switch (sort) {
-        case "created": return +new Date(b.created_at) - +new Date(a.created_at);
-        case "followup": {
-          const ad = data.nextFu[a.id]?.due_date; const bd = data.nextFu[b.id]?.due_date;
-          if (!ad && !bd) return 0; if (!ad) return 1; if (!bd) return -1;
-          return +new Date(ad) - +new Date(bd);
+        const safe = s.replace(/[,()]/g, " ").trim();
+        if (safe) {
+          query = query.or(
+            `site_name.ilike.%${safe}%,contact_name.ilike.%${safe}%,contact_phone.ilike.%${safe}%,site_address.ilike.%${safe}%,architect_name.ilike.%${safe}%,contractor_name.ilike.%${safe}%`
+          );
         }
-        case "priority": return (PRIORITY_RANK[a.priority] ?? 9) - (PRIORITY_RANK[b.priority] ?? 9);
-        case "score": return leadScore(b) - leadScore(a);
-        case "updated":
-        default: return +new Date(b.updated_at ?? b.created_at) - +new Date(a.updated_at ?? a.created_at);
       }
-    });
-    return arr;
-  }, [filtered, sort, data]);
+      if (filters.stage) query = query.eq("stage", filters.stage as any);
+      if (filters.status) query = query.eq("status", filters.status as any);
+      if (filters.priority) query = query.eq("priority", filters.priority as any);
+      if (filters.assignedTo) query = query.eq("assigned_to", filters.assignedTo);
+      if (filters.createdFrom) query = query.gte("created_at", filters.createdFrom);
+      if (filters.createdTo) query = query.lte("created_at", filters.createdTo + "T23:59:59");
 
-  const toggle = (id: string) => {
-    setSelected((cur) => {
-      const n = new Set(cur);
-      n.has(id) ? n.delete(id) : n.add(id);
-      return n;
-    });
-  };
-  const toggleAll = () => {
-    setSelected((cur) => cur.size === sorted.length ? new Set() : new Set(sorted.map((l: any) => l.id)));
-  };
+      // Server sort
+      if (serverSort === "created") query = query.order("created_at", { ascending: false });
+      else if (serverSort === "priority") query = query.order("priority", { ascending: true });
+      else query = query.order("updated_at", { ascending: false });
 
-  const reps = (data?.profiles ?? []) as { id: string; full_name: string | null }[];
+      const from = (pageParam as number) * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
+      const { data, count, error } = await query.range(from, to);
+      if (error) throw error;
+
+      // Product filter — apply client-side on returned page
+      let rows = data ?? [];
+      if (filters.product) {
+        const ids = rows.map((r: any) => r.id);
+        if (ids.length) {
+          const { data: lps } = await supabase
+            .from("lead_products")
+            .select("lead_id")
+            .in("lead_id", ids)
+            .eq("product", filters.product);
+          const allowed = new Set((lps ?? []).map((p: any) => p.lead_id));
+          rows = rows.filter((r: any) => allowed.has(r.id));
+        }
+      }
+
+      return { rows, count: count ?? 0, page: pageParam as number };
+    },
+    getNextPageParam: (last) => {
+      const loaded = (last.page + 1) * PAGE_SIZE;
+      return loaded < last.count ? last.page + 1 : undefined;
+    },
+    staleTime: 30_000,
+  });
+
+  const leads = useMemo(() => (data?.pages ?? []).flatMap((p) => p.rows), [data]);
+  const total = data?.pages[0]?.count ?? 0;
+
+  // Followups for visible leads
+  const visibleIds = leads.map((l: any) => l.id);
+  const { data: nextFu = {} } = useQuery({
+    queryKey: ["next-followups", visibleIds],
+    enabled: visibleIds.length > 0,
+    staleTime: 30_000,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("followups")
+        .select("lead_id, due_date, status")
+        .in("lead_id", visibleIds)
+        .eq("status", "Pending")
+        .order("due_date");
+      const map: Record<string, { due_date: string }> = {};
+      (data ?? []).forEach((f: any) => { if (!map[f.lead_id]) map[f.lead_id] = { due_date: f.due_date }; });
+      return map;
+    },
+  });
+
+  // Client-side resort for "score" / "followup"
+  const sorted = useMemo(() => {
+    if (sort === "score") return [...leads].sort((a, b) => leadScore(b) - leadScore(a));
+    if (sort === "followup") return [...leads].sort((a: any, b: any) => {
+      const ad = nextFu[a.id]?.due_date; const bd = nextFu[b.id]?.due_date;
+      if (!ad && !bd) return 0; if (!ad) return 1; if (!bd) return -1;
+      return +new Date(ad) - +new Date(bd);
+    });
+    if (sort === "priority") return [...leads].sort((a, b) =>
+      (PRIORITY_RANK[a.priority] ?? 9) - (PRIORITY_RANK[b.priority] ?? 9));
+    return leads;
+  }, [leads, sort, nextFu]);
+
+  const toggle = (id: string) => setSelected((cur) => {
+    const n = new Set(cur);
+    n.has(id) ? n.delete(id) : n.add(id);
+    return n;
+  });
+  const toggleAll = () => setSelected((cur) => cur.size === sorted.length ? new Set() : new Set(sorted.map((l: any) => l.id)));
+
+  const reps = (meta?.profiles ?? []) as { id: string; full_name: string | null }[];
+
+  const refresh = () => {
+    qc.invalidateQueries({ queryKey: ["leads-paged"] });
+    setSelected(new Set());
+  };
 
   const bulkUpdateStatus = async (status: string) => {
     const ids = Array.from(selected);
     const { error } = await supabase.from("leads").update({ status: status as any }).in("id", ids);
     if (error) return toast.error(error.message);
-    toast.success(`Updated ${ids.length} lead(s)`);
-    setSelected(new Set());
-    qc.invalidateQueries({ queryKey: ["leads-full"] });
+    toast.success(`Updated ${ids.length} lead(s)`); refresh();
   };
   const bulkReassign = async (userId: string) => {
     const ids = Array.from(selected);
     const { error } = await supabase.from("leads").update({ assigned_to: userId }).in("id", ids);
     if (error) return toast.error(error.message);
-    toast.success(`Reassigned ${ids.length} lead(s)`);
-    setSelected(new Set());
-    qc.invalidateQueries({ queryKey: ["leads-full"] });
+    toast.success(`Reassigned ${ids.length} lead(s)`); refresh();
   };
   const bulkDelete = async () => {
     const ids = Array.from(selected);
     const { error } = await supabase.from("leads").delete().in("id", ids);
     if (error) return toast.error(error.message);
-    toast.success(`Deleted ${ids.length} lead(s)`);
-    setSelected(new Set());
-    qc.invalidateQueries({ queryKey: ["leads-full"] });
+    toast.success(`Deleted ${ids.length} lead(s)`); refresh();
   };
   const bulkExport = () => {
     const ids = new Set(selected);
@@ -146,10 +195,14 @@ function LeadsList() {
       <div className="flex flex-col sm:flex-row gap-2">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search site, contact, phone, architect…" value={q} onChange={(e) => setQ(e.target.value)} className="pl-9 h-10" />
+          <Input placeholder="Search site, contact, phone, architect…" value={qRaw} onChange={(e) => setQRaw(e.target.value)} className="pl-9 h-10" />
         </div>
         <LeadFilters filters={filters} onFiltersChange={setFilters} sort={sort} onSortChange={setSort} isAdmin={isAdmin} reps={reps} />
       </div>
+
+      {!isLoading && (
+        <p className="text-xs text-muted-foreground">Showing {sorted.length} of {total}</p>
+      )}
 
       {isAdmin && selected.size > 0 && (
         <div className="sticky top-[60px] z-20 flex flex-wrap items-center gap-2 rounded-md border-2 border-primary bg-card p-2">
@@ -170,7 +223,7 @@ function LeadsList() {
             <AlertDialogContent>
               <AlertDialogHeader>
                 <AlertDialogTitle>Delete {selected.size} lead(s)?</AlertDialogTitle>
-                <AlertDialogDescription>This cannot be undone. Photos and follow-ups will remain orphaned.</AlertDialogDescription>
+                <AlertDialogDescription>This cannot be undone.</AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -182,8 +235,16 @@ function LeadsList() {
         </div>
       )}
 
-      {isLoading && <p className="text-center text-muted-foreground py-10 text-sm">Loading…</p>}
-      {!isLoading && sorted.length === 0 && <p className="text-center text-muted-foreground py-10 text-sm">No leads match.</p>}
+      {isLoading && (
+        <div className="space-y-2">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-28 w-full" />
+          ))}
+        </div>
+      )}
+      {!isLoading && sorted.length === 0 && (
+        <p className="text-center text-muted-foreground py-10 text-sm">No leads match.</p>
+      )}
 
       {/* Mobile cards */}
       <ul className="md:hidden space-y-2">
@@ -191,7 +252,7 @@ function LeadsList() {
           <li key={l.id}>
             <LeadCard
               lead={l}
-              nextFollowup={data?.nextFu[l.id] ?? null}
+              nextFollowup={nextFu[l.id] ?? null}
               selectable={isAdmin}
               selected={selected.has(l.id)}
               onToggle={() => toggle(l.id)}
@@ -254,7 +315,7 @@ function LeadsList() {
                   <td className="p-2"><Badge variant="outline" className={statusClass(l.status)}>{l.status}</Badge></td>
                   <td className="p-2"><Badge className={priorityClass(l.priority)}>{l.priority}</Badge></td>
                   <td className="p-2 text-xs">
-                    {data?.nextFu[l.id] ? format(new Date(data.nextFu[l.id].due_date), "MMM d") : "—"}
+                    {nextFu[l.id] ? format(new Date(nextFu[l.id].due_date), "MMM d") : "—"}
                   </td>
                   <td className="p-2 text-xs text-muted-foreground">
                     {formatDistanceToNow(new Date(l.updated_at ?? l.created_at), { addSuffix: true })}
@@ -264,6 +325,15 @@ function LeadsList() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {hasNextPage && (
+        <div className="flex justify-center pt-2">
+          <Button variant="outline" onClick={() => fetchNextPage()} disabled={isFetchingNextPage}>
+            {isFetchingNextPage ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+            Load more
+          </Button>
         </div>
       )}
     </div>
