@@ -6,7 +6,7 @@ import { HardHat } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 
-export function AppShell({ children, title }: { children: ReactNode; title?: string }) {
+export function AppShell({ children, title, wide }: { children: ReactNode; title?: string; wide?: boolean }) {
   const { user, loading } = useAuth();
 
   if (loading) {
@@ -33,7 +33,7 @@ export function AppShell({ children, title }: { children: ReactNode; title?: str
           </Button>
         </div>
       </header>
-      <main className="max-w-xl mx-auto px-4 py-4">{children}</main>
+      <main className={(wide ? "max-w-6xl" : "max-w-xl") + " mx-auto px-4 py-4"}>{children}</main>
       <BottomNav />
     </div>
   );
