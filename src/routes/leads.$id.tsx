@@ -36,7 +36,7 @@ function Detail() {
 
   const updateStatus = useMutation({
     mutationFn: async (status: string) => {
-      const { error } = await supabase.from("leads").update({ status }).eq("id", id);
+      const { error } = await supabase.from("leads").update({ status: status as any }).eq("id", id);
       if (error) throw error;
       const { data: u } = await supabase.auth.getUser();
       await supabase.from("activities").insert({ lead_id: id, user_id: u.user?.id, activity_type: "Status change", notes: `Status set to ${status}` });
