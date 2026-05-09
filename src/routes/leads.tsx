@@ -75,9 +75,9 @@ function LeadsList() {
           );
         }
       }
-      if (filters.stage) query = query.eq("stage", filters.stage);
-      if (filters.status) query = query.eq("status", filters.status);
-      if (filters.priority) query = query.eq("priority", filters.priority);
+      if (filters.stage) query = query.eq("stage", filters.stage as any);
+      if (filters.status) query = query.eq("status", filters.status as any);
+      if (filters.priority) query = query.eq("priority", filters.priority as any);
       if (filters.assignedTo) query = query.eq("assigned_to", filters.assignedTo);
       if (filters.createdFrom) query = query.gte("created_at", filters.createdFrom);
       if (filters.createdTo) query = query.lte("created_at", filters.createdTo + "T23:59:59");
