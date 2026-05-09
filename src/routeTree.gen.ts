@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as MapRouteImport } from './routes/map'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LeadsRouteImport } from './routes/leads'
 import { Route as FollowupsRouteImport } from './routes/followups'
@@ -16,6 +17,11 @@ import { Route as AddRouteImport } from './routes/add'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LeadsIdRouteImport } from './routes/leads.$id'
 
+const MapRoute = MapRouteImport.update({
+  id: '/map',
+  path: '/map',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -53,6 +59,7 @@ export interface FileRoutesByFullPath {
   '/followups': typeof FollowupsRoute
   '/leads': typeof LeadsRouteWithChildren
   '/login': typeof LoginRoute
+  '/map': typeof MapRoute
   '/leads/$id': typeof LeadsIdRoute
 }
 export interface FileRoutesByTo {
@@ -61,6 +68,7 @@ export interface FileRoutesByTo {
   '/followups': typeof FollowupsRoute
   '/leads': typeof LeadsRouteWithChildren
   '/login': typeof LoginRoute
+  '/map': typeof MapRoute
   '/leads/$id': typeof LeadsIdRoute
 }
 export interface FileRoutesById {
@@ -70,13 +78,21 @@ export interface FileRoutesById {
   '/followups': typeof FollowupsRoute
   '/leads': typeof LeadsRouteWithChildren
   '/login': typeof LoginRoute
+  '/map': typeof MapRoute
   '/leads/$id': typeof LeadsIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/add' | '/followups' | '/leads' | '/login' | '/leads/$id'
+  fullPaths:
+    | '/'
+    | '/add'
+    | '/followups'
+    | '/leads'
+    | '/login'
+    | '/map'
+    | '/leads/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/add' | '/followups' | '/leads' | '/login' | '/leads/$id'
+  to: '/' | '/add' | '/followups' | '/leads' | '/login' | '/map' | '/leads/$id'
   id:
     | '__root__'
     | '/'
@@ -84,6 +100,7 @@ export interface FileRouteTypes {
     | '/followups'
     | '/leads'
     | '/login'
+    | '/map'
     | '/leads/$id'
   fileRoutesById: FileRoutesById
 }
@@ -93,10 +110,18 @@ export interface RootRouteChildren {
   FollowupsRoute: typeof FollowupsRoute
   LeadsRoute: typeof LeadsRouteWithChildren
   LoginRoute: typeof LoginRoute
+  MapRoute: typeof MapRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/map': {
+      id: '/map'
+      path: '/map'
+      fullPath: '/map'
+      preLoaderRoute: typeof MapRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -158,6 +183,7 @@ const rootRouteChildren: RootRouteChildren = {
   FollowupsRoute: FollowupsRoute,
   LeadsRoute: LeadsRouteWithChildren,
   LoginRoute: LoginRoute,
+  MapRoute: MapRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
