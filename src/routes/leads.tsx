@@ -33,7 +33,7 @@ const PRIORITY_RANK: Record<string, number> = { Hot: 0, Warm: 1, Cold: 2 };
 
 // Slim column list — never SELECT *
 const LIST_COLS =
-  "id,site_name,contact_name,contact_phone,site_address,stage,status,priority,latitude,longitude,assigned_to,owner_id,estimated_budget,created_at,updated_at";
+  "id,site_name,contact_name,contact_phone,site_address,stage,status,priority,latitude,longitude,assigned_to,owner_id,estimated_budget,exact_requirement,created_at,updated_at";
 
 function LeadsList() {
   const qc = useQueryClient();
@@ -71,7 +71,7 @@ function LeadsList() {
         const safe = s.replace(/[,()]/g, " ").trim();
         if (safe) {
           query = query.or(
-            `site_name.ilike.%${safe}%,contact_name.ilike.%${safe}%,contact_phone.ilike.%${safe}%,site_address.ilike.%${safe}%,architect_name.ilike.%${safe}%,contractor_name.ilike.%${safe}%`
+            `site_name.ilike.%${safe}%,contact_name.ilike.%${safe}%,contact_phone.ilike.%${safe}%,site_address.ilike.%${safe}%,architect_name.ilike.%${safe}%,contractor_name.ilike.%${safe}%,exact_requirement.ilike.%${safe}%`
           );
         }
       }

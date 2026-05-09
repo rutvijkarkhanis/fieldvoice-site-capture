@@ -10,6 +10,7 @@ const labels: Record<string, string> = {
   project_type: "Project type", project_size_sqft: "Size (sqft)", num_floors: "Floors",
   estimated_budget: "Budget", expected_completion: "Expected end", stage: "Stage",
   status: "Status", priority: "Priority", notes: "Notes", assigned_to: "Assigned to",
+  exact_requirement: "Exact requirement",
 };
 
 export function EditHistoryList({ leadId }: { leadId: string }) {

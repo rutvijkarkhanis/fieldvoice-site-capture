@@ -29,6 +29,7 @@ type Form = {
   project_type: string; project_size_sqft: string; num_floors: string; estimated_budget: string; expected_completion: string;
   stage: string; status: string; priority: string;
   notes: string;
+  exact_requirement: string;
   followup_date: string;
 };
 
@@ -37,7 +38,7 @@ const empty: Form = {
   company_name: "", architect_name: "", contractor_name: "",
   site_address: "", landmark: "",
   project_type: "", project_size_sqft: "", num_floors: "", estimated_budget: "", expected_completion: "",
-  stage: "", status: "New", priority: "Warm", notes: "", followup_date: "",
+  stage: "", status: "New", priority: "Warm", notes: "", exact_requirement: "", followup_date: "",
 };
 
 function fromLead(l: any): Form {
@@ -60,6 +61,7 @@ function fromLead(l: any): Form {
     status: l.status ?? "New",
     priority: l.priority ?? "Warm",
     notes: l.notes ?? "",
+    exact_requirement: l.exact_requirement ?? "",
     followup_date: "",
   };
 }
@@ -189,6 +191,7 @@ function EditLead() {
         status: f.status,
         priority: f.priority,
         notes: f.notes || null,
+        exact_requirement: f.exact_requirement || null,
       };
       const { error } = await supabase.from("leads").update(payload).eq("id", id);
       if (error) throw error;
@@ -323,6 +326,11 @@ function EditLead() {
 
       <Section title="Notes">
         <Textarea rows={4} value={f.notes} onChange={(e) => set("notes", e.target.value)} />
+      </Section>
+
+      <Section title="Exact Material Requirement">
+        <p className="text-xs text-muted-foreground">Quantity, brand, specifications, customer comments.</p>
+        <Textarea rows={4} value={f.exact_requirement} onChange={(e) => set("exact_requirement", e.target.value)} placeholder="e.g. 500 kg Birla White wall putty" />
       </Section>
 
       <Section title="Photos">

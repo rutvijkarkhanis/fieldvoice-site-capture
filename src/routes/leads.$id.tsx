@@ -122,6 +122,17 @@ function Detail() {
         </section>
       )}
 
+      {l.exact_requirement && (
+        <section>
+          <h2 className="display text-sm mb-2">Exact Material Requirement</h2>
+          <Card className="border-2 border-primary">
+            <CardContent className="p-4 text-base whitespace-pre-wrap font-medium leading-relaxed">
+              {l.exact_requirement}
+            </CardContent>
+          </Card>
+        </section>
+      )}
+
       {data.photos.length > 0 && (
         <section>
           <h2 className="display text-sm mb-2">Photos ({data.photos.length})</h2>
