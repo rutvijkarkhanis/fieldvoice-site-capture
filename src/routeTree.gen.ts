@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LeadsRouteImport } from './routes/leads'
+import { Route as FollowupsRouteImport } from './routes/followups'
 import { Route as AddRouteImport } from './routes/add'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LeadsIdRouteImport } from './routes/leads.$id'
@@ -23,6 +24,11 @@ const LoginRoute = LoginRouteImport.update({
 const LeadsRoute = LeadsRouteImport.update({
   id: '/leads',
   path: '/leads',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FollowupsRoute = FollowupsRouteImport.update({
+  id: '/followups',
+  path: '/followups',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AddRoute = AddRouteImport.update({
@@ -44,6 +50,7 @@ const LeadsIdRoute = LeadsIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/add': typeof AddRoute
+  '/followups': typeof FollowupsRoute
   '/leads': typeof LeadsRouteWithChildren
   '/login': typeof LoginRoute
   '/leads/$id': typeof LeadsIdRoute
@@ -51,6 +58,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/add': typeof AddRoute
+  '/followups': typeof FollowupsRoute
   '/leads': typeof LeadsRouteWithChildren
   '/login': typeof LoginRoute
   '/leads/$id': typeof LeadsIdRoute
@@ -59,21 +67,30 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/add': typeof AddRoute
+  '/followups': typeof FollowupsRoute
   '/leads': typeof LeadsRouteWithChildren
   '/login': typeof LoginRoute
   '/leads/$id': typeof LeadsIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/add' | '/leads' | '/login' | '/leads/$id'
+  fullPaths: '/' | '/add' | '/followups' | '/leads' | '/login' | '/leads/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/add' | '/leads' | '/login' | '/leads/$id'
-  id: '__root__' | '/' | '/add' | '/leads' | '/login' | '/leads/$id'
+  to: '/' | '/add' | '/followups' | '/leads' | '/login' | '/leads/$id'
+  id:
+    | '__root__'
+    | '/'
+    | '/add'
+    | '/followups'
+    | '/leads'
+    | '/login'
+    | '/leads/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AddRoute: typeof AddRoute
+  FollowupsRoute: typeof FollowupsRoute
   LeadsRoute: typeof LeadsRouteWithChildren
   LoginRoute: typeof LoginRoute
 }
@@ -92,6 +109,13 @@ declare module '@tanstack/react-router' {
       path: '/leads'
       fullPath: '/leads'
       preLoaderRoute: typeof LeadsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/followups': {
+      id: '/followups'
+      path: '/followups'
+      fullPath: '/followups'
+      preLoaderRoute: typeof FollowupsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/add': {
@@ -131,6 +155,7 @@ const LeadsRouteWithChildren = LeadsRoute._addFileChildren(LeadsRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AddRoute: AddRoute,
+  FollowupsRoute: FollowupsRoute,
   LeadsRoute: LeadsRouteWithChildren,
   LoginRoute: LoginRoute,
 }
