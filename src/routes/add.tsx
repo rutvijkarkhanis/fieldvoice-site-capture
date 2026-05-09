@@ -14,6 +14,7 @@ import { Mic, MicOff, MapPin, Camera, Loader2, Save } from "lucide-react";
 import { STAGES, STATUSES, PRIORITIES, PROJECT_TYPES, PRODUCTS } from "@/lib/constants";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
+import { compressImage } from "@/lib/image-utils";
 
 export const Route = createFileRoute("/add")({
   head: () => ({ meta: [{ title: "Add Lead — Cunstruct CRM" }] }),
@@ -169,9 +170,10 @@ function AddLead() {
 
       // Photos
       for (const file of photos) {
-        const ext = file.name.split(".").pop() ?? "jpg";
+        const compressed = await compressImage(file).catch(() => file);
+        const ext = compressed.name.split(".").pop() ?? "jpg";
         const path = `${user.id}/${lead.id}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-        const { error: upErr } = await supabase.storage.from("lead-photos").upload(path, file, { contentType: file.type });
+        const { error: upErr } = await supabase.storage.from("lead-photos").upload(path, compressed, { contentType: compressed.type });
         if (upErr) { console.error(upErr); continue; }
         const { data: pub } = supabase.storage.from("lead-photos").getPublicUrl(path);
         await supabase.from("photos").insert({ lead_id: lead.id, user_id: user.id, image_url: pub.publicUrl, image_type: "site" });
