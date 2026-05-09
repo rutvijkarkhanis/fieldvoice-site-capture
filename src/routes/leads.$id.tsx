@@ -6,10 +6,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { priorityClass, statusClass, STATUSES } from "@/lib/constants";
-import { Phone, MessageCircle, MapPin, ExternalLink } from "lucide-react";
+import { Phone, MessageCircle, MapPin, ExternalLink, Pencil, CalendarPlus, StickyNote, Camera } from "lucide-react";
 import { format } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
+import { useState } from "react";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { EditHistoryList } from "@/components/leads/EditHistoryList";
+import { useAuth } from "@/lib/auth";
 
 export const Route = createFileRoute("/leads/$id")({
   head: () => ({ meta: [{ title: "Lead — Cunstruct CRM" }] }),
@@ -19,6 +25,7 @@ export const Route = createFileRoute("/leads/$id")({
 function Detail() {
   const { id } = Route.useParams();
   const qc = useQueryClient();
+  const { user } = useAuth();
 
   const { data } = useQuery({
     queryKey: ["lead", id],
@@ -44,6 +51,12 @@ function Detail() {
     onSuccess: () => { toast.success("Status updated"); qc.invalidateQueries({ queryKey: ["lead", id] }); qc.invalidateQueries({ queryKey: ["leads"] }); qc.invalidateQueries({ queryKey: ["dashboard"] }); },
     onError: (e: any) => toast.error(e.message),
   });
+
+  const refresh = () => {
+    qc.invalidateQueries({ queryKey: ["lead", id] });
+    qc.invalidateQueries({ queryKey: ["edit-history", id] });
+    qc.invalidateQueries({ queryKey: ["leads-full"] });
+  };
 
   if (!data?.lead) return <p className="text-muted-foreground">Loading…</p>;
   const l = data.lead;
@@ -75,6 +88,13 @@ function Detail() {
             <Button asChild variant="default" disabled={!phone}><a href={phone ? `tel:${phone}` : "#"}><Phone className="h-4 w-4 mr-1" />Call</a></Button>
             <Button asChild variant="secondary" disabled={!phone}><a href={phone ? `https://wa.me/${phone.startsWith("91") ? phone : `91${phone}`}` : "#"} target="_blank" rel="noreferrer"><MessageCircle className="h-4 w-4 mr-1" />WhatsApp</a></Button>
             <Button asChild variant="outline" disabled={!mapsUrl}><a href={mapsUrl ?? "#"} target="_blank" rel="noreferrer"><ExternalLink className="h-4 w-4 mr-1" />Maps</a></Button>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            <Button asChild variant="default">
+              <Link to="/leads/$id/edit" params={{ id }}><Pencil className="h-4 w-4 mr-1" />Edit Lead</Link>
+            </Button>
+            <QuickActions leadId={id} userId={user?.id} onChange={refresh} />
           </div>
 
           <div className="pt-2">
@@ -146,7 +166,97 @@ function Detail() {
         </CardContent></Card>
       </section>
 
+      <section>
+        <h2 className="display text-sm mb-2">Edit History</h2>
+        <EditHistoryList leadId={id} />
+      </section>
+
       <Link to="/leads" className="block text-center text-sm text-muted-foreground">← Back to leads</Link>
     </div>
+  );
+}
+
+function QuickActions({ leadId, userId, onChange }: { leadId: string; userId?: string; onChange: () => void }) {
+  const [open, setOpen] = useState<null | "followup" | "note" | "photo">(null);
+  const [date, setDate] = useState("");
+  const [time, setTime] = useState("");
+  const [reminder, setReminder] = useState("");
+  const [note, setNote] = useState("");
+  const [files, setFiles] = useState<File[]>([]);
+  const [busy, setBusy] = useState(false);
+
+  const close = () => { setOpen(null); setDate(""); setTime(""); setReminder(""); setNote(""); setFiles([]); };
+
+  const submitFollowup = async () => {
+    if (!userId || !date) return;
+    setBusy(true);
+    const { error } = await supabase.from("followups").insert({
+      lead_id: leadId, user_id: userId, due_date: date, due_time: time || null, reminder_notes: reminder || null,
+    });
+    setBusy(false);
+    if (error) return toast.error(error.message);
+    toast.success("Follow-up scheduled"); onChange(); close();
+  };
+  const submitNote = async () => {
+    if (!userId || !note.trim()) return;
+    setBusy(true);
+    const { error } = await supabase.from("activities").insert({
+      lead_id: leadId, user_id: userId, activity_type: "Visit note", notes: note,
+    });
+    setBusy(false);
+    if (error) return toast.error(error.message);
+    toast.success("Note added"); onChange(); close();
+  };
+  const submitPhotos = async () => {
+    if (!userId || files.length === 0) return;
+    setBusy(true);
+    for (const file of files) {
+      const ext = file.name.split(".").pop() ?? "jpg";
+      const path = `${userId}/${leadId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("lead-photos").upload(path, file, { contentType: file.type });
+      if (upErr) { toast.error(upErr.message); continue; }
+      const { data: pub } = supabase.storage.from("lead-photos").getPublicUrl(path);
+      await supabase.from("photos").insert({ lead_id: leadId, user_id: userId, image_url: pub.publicUrl, image_type: "site" });
+    }
+    setBusy(false);
+    toast.success("Photos uploaded"); onChange(); close();
+  };
+
+  return (
+    <Dialog open={!!open} onOpenChange={(o) => !o && close()}>
+      <div className="grid grid-cols-3 gap-1">
+        <DialogTrigger asChild><Button size="sm" variant="secondary" onClick={() => setOpen("followup")}><CalendarPlus className="h-3.5 w-3.5" /></Button></DialogTrigger>
+        <DialogTrigger asChild><Button size="sm" variant="secondary" onClick={() => setOpen("note")}><StickyNote className="h-3.5 w-3.5" /></Button></DialogTrigger>
+        <DialogTrigger asChild><Button size="sm" variant="secondary" onClick={() => setOpen("photo")}><Camera className="h-3.5 w-3.5" /></Button></DialogTrigger>
+      </div>
+      <DialogContent>
+        {open === "followup" && (
+          <>
+            <DialogHeader><DialogTitle>Schedule follow-up</DialogTitle></DialogHeader>
+            <div className="space-y-2">
+              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+              <Input type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+              <Textarea placeholder="Reminder notes" value={reminder} onChange={(e) => setReminder(e.target.value)} />
+            </div>
+            <DialogFooter><Button onClick={submitFollowup} disabled={busy || !date}>Save</Button></DialogFooter>
+          </>
+        )}
+        {open === "note" && (
+          <>
+            <DialogHeader><DialogTitle>Add visit note</DialogTitle></DialogHeader>
+            <Textarea placeholder="What happened on this visit?" rows={5} value={note} onChange={(e) => setNote(e.target.value)} />
+            <DialogFooter><Button onClick={submitNote} disabled={busy || !note.trim()}>Save</Button></DialogFooter>
+          </>
+        )}
+        {open === "photo" && (
+          <>
+            <DialogHeader><DialogTitle>Upload photos</DialogTitle></DialogHeader>
+            <input type="file" accept="image/*" capture="environment" multiple onChange={(e) => setFiles(Array.from(e.target.files ?? []))} />
+            {files.length > 0 && <p className="text-sm text-muted-foreground">{files.length} file(s) selected</p>}
+            <DialogFooter><Button onClick={submitPhotos} disabled={busy || files.length === 0}>Upload</Button></DialogFooter>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
