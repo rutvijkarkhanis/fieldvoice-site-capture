@@ -9,38 +9,147 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as MapRouteImport } from './routes/map'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as LeadsRouteImport } from './routes/leads'
+import { Route as FollowupsRouteImport } from './routes/followups'
+import { Route as AddRouteImport } from './routes/add'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as LeadsIdRouteImport } from './routes/leads.$id'
 
+const MapRoute = MapRouteImport.update({
+  id: '/map',
+  path: '/map',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LeadsRoute = LeadsRouteImport.update({
+  id: '/leads',
+  path: '/leads',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FollowupsRoute = FollowupsRouteImport.update({
+  id: '/followups',
+  path: '/followups',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AddRoute = AddRouteImport.update({
+  id: '/add',
+  path: '/add',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LeadsIdRoute = LeadsIdRouteImport.update({
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => LeadsRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/add': typeof AddRoute
+  '/followups': typeof FollowupsRoute
+  '/leads': typeof LeadsRouteWithChildren
+  '/login': typeof LoginRoute
+  '/map': typeof MapRoute
+  '/leads/$id': typeof LeadsIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/add': typeof AddRoute
+  '/followups': typeof FollowupsRoute
+  '/leads': typeof LeadsRouteWithChildren
+  '/login': typeof LoginRoute
+  '/map': typeof MapRoute
+  '/leads/$id': typeof LeadsIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/add': typeof AddRoute
+  '/followups': typeof FollowupsRoute
+  '/leads': typeof LeadsRouteWithChildren
+  '/login': typeof LoginRoute
+  '/map': typeof MapRoute
+  '/leads/$id': typeof LeadsIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/add'
+    | '/followups'
+    | '/leads'
+    | '/login'
+    | '/map'
+    | '/leads/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/add' | '/followups' | '/leads' | '/login' | '/map' | '/leads/$id'
+  id:
+    | '__root__'
+    | '/'
+    | '/add'
+    | '/followups'
+    | '/leads'
+    | '/login'
+    | '/map'
+    | '/leads/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AddRoute: typeof AddRoute
+  FollowupsRoute: typeof FollowupsRoute
+  LeadsRoute: typeof LeadsRouteWithChildren
+  LoginRoute: typeof LoginRoute
+  MapRoute: typeof MapRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/map': {
+      id: '/map'
+      path: '/map'
+      fullPath: '/map'
+      preLoaderRoute: typeof MapRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/leads': {
+      id: '/leads'
+      path: '/leads'
+      fullPath: '/leads'
+      preLoaderRoute: typeof LeadsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/followups': {
+      id: '/followups'
+      path: '/followups'
+      fullPath: '/followups'
+      preLoaderRoute: typeof FollowupsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/add': {
+      id: '/add'
+      path: '/add'
+      fullPath: '/add'
+      preLoaderRoute: typeof AddRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,22 +157,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/leads/$id': {
+      id: '/leads/$id'
+      path: '/$id'
+      fullPath: '/leads/$id'
+      preLoaderRoute: typeof LeadsIdRouteImport
+      parentRoute: typeof LeadsRoute
+    }
   }
 }
 
+interface LeadsRouteChildren {
+  LeadsIdRoute: typeof LeadsIdRoute
+}
+
+const LeadsRouteChildren: LeadsRouteChildren = {
+  LeadsIdRoute: LeadsIdRoute,
+}
+
+const LeadsRouteWithChildren = LeadsRoute._addFileChildren(LeadsRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AddRoute: AddRoute,
+  FollowupsRoute: FollowupsRoute,
+  LeadsRoute: LeadsRouteWithChildren,
+  LoginRoute: LoginRoute,
+  MapRoute: MapRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
