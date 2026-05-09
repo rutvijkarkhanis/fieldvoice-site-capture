@@ -169,6 +169,7 @@ export type Database = {
           contractor_name: string | null
           created_at: string
           estimated_budget: number | null
+          exact_requirement: string | null
           expected_completion: string | null
           id: string
           landmark: string | null
@@ -196,6 +197,7 @@ export type Database = {
           contractor_name?: string | null
           created_at?: string
           estimated_budget?: number | null
+          exact_requirement?: string | null
           expected_completion?: string | null
           id?: string
           landmark?: string | null
@@ -223,6 +225,7 @@ export type Database = {
           contractor_name?: string | null
           created_at?: string
           estimated_budget?: number | null
+          exact_requirement?: string | null
           expected_completion?: string | null
           id?: string
           landmark?: string | null
