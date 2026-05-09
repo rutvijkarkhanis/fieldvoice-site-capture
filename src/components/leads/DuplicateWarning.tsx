@@ -13,8 +13,8 @@ export function DuplicateWarning({
     const run = async () => {
       const filters: string[] = [];
       if (phone && phone.length >= 6) filters.push(`contact_phone.eq.${phone}`);
-      if (siteName && siteName.trim().length >= 3) filters.push(`site_name.ilike.${siteName.trim()}`);
-      if (address && address.trim().length >= 6) filters.push(`site_address.ilike.${address.trim()}`);
+      if (siteName && siteName.trim().length >= 3) filters.push(`site_name.ilike.%${siteName.trim()}%`);
+      if (address && address.trim().length >= 6) filters.push(`site_address.ilike.%${address.trim()}%`);
       if (filters.length === 0) { setMatches([]); return; }
       let q = supabase.from("leads").select("id,site_name,contact_phone,site_address").or(filters.join(","));
       if (excludeId) q = q.neq("id", excludeId);
