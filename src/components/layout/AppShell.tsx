@@ -1,4 +1,4 @@
-import { type ReactNode } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import { Navigate } from "@tanstack/react-router";
 import { BottomNav } from "./BottomNav";
@@ -8,9 +8,29 @@ import { Button } from "@/components/ui/button";
 
 export function AppShell({ children, title, wide }: { children: ReactNode; title?: string; wide?: boolean }) {
   const { user, loading } = useAuth();
+  const [stuck, setStuck] = useState(false);
+
+  useEffect(() => {
+    if (!loading) return;
+    const t = setTimeout(() => setStuck(true), 10_000);
+    return () => clearTimeout(t);
+  }, [loading]);
 
   if (loading) {
-    return <div className="min-h-screen grid place-items-center text-muted-foreground">Loading…</div>;
+    return (
+      <div className="min-h-screen grid place-items-center bg-background px-6">
+        <div className="text-center space-y-3">
+          <HardHat className="h-10 w-10 text-primary mx-auto" />
+          <div className="display text-lg">Cunstruct CRM</div>
+          <div className="text-sm text-muted-foreground">
+            {stuck ? "Something went wrong. Tap to retry." : "Loading CRM…"}
+          </div>
+          {stuck && (
+            <Button size="sm" onClick={() => window.location.reload()}>Retry</Button>
+          )}
+        </div>
+      </div>
+    );
   }
   if (!user) {
     return <Navigate to="/login" />;
