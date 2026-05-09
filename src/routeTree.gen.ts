@@ -16,6 +16,7 @@ import { Route as FollowupsRouteImport } from './routes/followups'
 import { Route as AddRouteImport } from './routes/add'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LeadsIdRouteImport } from './routes/leads.$id'
+import { Route as LeadsIdEditRouteImport } from './routes/leads.$id.edit'
 
 const MapRoute = MapRouteImport.update({
   id: '/map',
@@ -52,6 +53,11 @@ const LeadsIdRoute = LeadsIdRouteImport.update({
   path: '/$id',
   getParentRoute: () => LeadsRoute,
 } as any)
+const LeadsIdEditRoute = LeadsIdEditRouteImport.update({
+  id: '/edit',
+  path: '/edit',
+  getParentRoute: () => LeadsIdRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -60,7 +66,8 @@ export interface FileRoutesByFullPath {
   '/leads': typeof LeadsRouteWithChildren
   '/login': typeof LoginRoute
   '/map': typeof MapRoute
-  '/leads/$id': typeof LeadsIdRoute
+  '/leads/$id': typeof LeadsIdRouteWithChildren
+  '/leads/$id/edit': typeof LeadsIdEditRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -69,7 +76,8 @@ export interface FileRoutesByTo {
   '/leads': typeof LeadsRouteWithChildren
   '/login': typeof LoginRoute
   '/map': typeof MapRoute
-  '/leads/$id': typeof LeadsIdRoute
+  '/leads/$id': typeof LeadsIdRouteWithChildren
+  '/leads/$id/edit': typeof LeadsIdEditRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -79,7 +87,8 @@ export interface FileRoutesById {
   '/leads': typeof LeadsRouteWithChildren
   '/login': typeof LoginRoute
   '/map': typeof MapRoute
-  '/leads/$id': typeof LeadsIdRoute
+  '/leads/$id': typeof LeadsIdRouteWithChildren
+  '/leads/$id/edit': typeof LeadsIdEditRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -91,8 +100,17 @@ export interface FileRouteTypes {
     | '/login'
     | '/map'
     | '/leads/$id'
+    | '/leads/$id/edit'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/add' | '/followups' | '/leads' | '/login' | '/map' | '/leads/$id'
+  to:
+    | '/'
+    | '/add'
+    | '/followups'
+    | '/leads'
+    | '/login'
+    | '/map'
+    | '/leads/$id'
+    | '/leads/$id/edit'
   id:
     | '__root__'
     | '/'
@@ -102,6 +120,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/map'
     | '/leads/$id'
+    | '/leads/$id/edit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -164,15 +183,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LeadsIdRouteImport
       parentRoute: typeof LeadsRoute
     }
+    '/leads/$id/edit': {
+      id: '/leads/$id/edit'
+      path: '/edit'
+      fullPath: '/leads/$id/edit'
+      preLoaderRoute: typeof LeadsIdEditRouteImport
+      parentRoute: typeof LeadsIdRoute
+    }
   }
 }
 
+interface LeadsIdRouteChildren {
+  LeadsIdEditRoute: typeof LeadsIdEditRoute
+}
+
+const LeadsIdRouteChildren: LeadsIdRouteChildren = {
+  LeadsIdEditRoute: LeadsIdEditRoute,
+}
+
+const LeadsIdRouteWithChildren =
+  LeadsIdRoute._addFileChildren(LeadsIdRouteChildren)
+
 interface LeadsRouteChildren {
-  LeadsIdRoute: typeof LeadsIdRoute
+  LeadsIdRoute: typeof LeadsIdRouteWithChildren
 }
 
 const LeadsRouteChildren: LeadsRouteChildren = {
-  LeadsIdRoute: LeadsIdRoute,
+  LeadsIdRoute: LeadsIdRouteWithChildren,
 }
 
 const LeadsRouteWithChildren = LeadsRoute._addFileChildren(LeadsRouteChildren)
@@ -188,3 +225,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
