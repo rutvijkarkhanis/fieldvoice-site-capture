@@ -14,10 +14,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(s);
       setLoading(false);
     });
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      setLoading(false);
-    });
+    // Fail open after 5s so we never hang on a flaky network
+    const timeout = setTimeout(() => setLoading(false), 5000);
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        setSession(data.session);
+      })
+      .catch((err) => {
+        console.error("[auth] getSession failed", err);
+      })
+      .finally(() => {
+        clearTimeout(timeout);
+        setLoading(false);
+      });
     return () => sub.subscription.unsubscribe();
   }, []);
 
