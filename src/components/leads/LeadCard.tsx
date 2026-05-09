@@ -51,6 +51,16 @@ function LeadCardImpl({
                     <MapPin className="h-3 w-3" />{lead.site_address}
                   </div>
                 )}
+                {lead.exact_requirement && (
+                  <div className="text-xs mt-1 line-clamp-2">
+                    <span className="font-bold text-primary">Requirement:</span>{" "}
+                    <span className="text-foreground/80">
+                      {lead.exact_requirement.length > 120
+                        ? lead.exact_requirement.slice(0, 120) + "…"
+                        : lead.exact_requirement}
+                    </span>
+                  </div>
+                )}
               </div>
               <div className="flex flex-col items-end gap-1 shrink-0">
                 <Badge className={priorityClass(lead.priority)}>{lead.priority}</Badge>
