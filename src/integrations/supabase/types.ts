@@ -14,16 +14,328 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      activities: {
+        Row: {
+          activity_type: string
+          created_at: string
+          id: string
+          lead_id: string
+          notes: string | null
+          transcript: string | null
+          user_id: string | null
+        }
+        Insert: {
+          activity_type: string
+          created_at?: string
+          id?: string
+          lead_id: string
+          notes?: string | null
+          transcript?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          activity_type?: string
+          created_at?: string
+          id?: string
+          lead_id?: string
+          notes?: string | null
+          transcript?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activities_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      followups: {
+        Row: {
+          created_at: string
+          due_date: string
+          due_time: string | null
+          id: string
+          lead_id: string
+          outcome: string | null
+          reminder_notes: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          due_date: string
+          due_time?: string | null
+          id?: string
+          lead_id: string
+          outcome?: string | null
+          reminder_notes?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          due_date?: string
+          due_time?: string | null
+          id?: string
+          lead_id?: string
+          outcome?: string | null
+          reminder_notes?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "followups_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_products: {
+        Row: {
+          created_at: string
+          id: string
+          lead_id: string
+          product: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lead_id: string
+          product: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lead_id?: string
+          product?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_products_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leads: {
+        Row: {
+          alternate_phone: string | null
+          architect_name: string | null
+          company_name: string | null
+          contact_name: string | null
+          contact_phone: string | null
+          contractor_name: string | null
+          created_at: string
+          estimated_budget: number | null
+          expected_completion: string | null
+          id: string
+          landmark: string | null
+          latitude: number | null
+          longitude: number | null
+          notes: string | null
+          num_floors: number | null
+          owner_id: string
+          priority: Database["public"]["Enums"]["lead_priority"]
+          project_size_sqft: number | null
+          project_type: Database["public"]["Enums"]["project_type"] | null
+          site_address: string | null
+          site_name: string
+          stage: Database["public"]["Enums"]["construction_stage"] | null
+          status: Database["public"]["Enums"]["lead_status"]
+          updated_at: string
+        }
+        Insert: {
+          alternate_phone?: string | null
+          architect_name?: string | null
+          company_name?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          contractor_name?: string | null
+          created_at?: string
+          estimated_budget?: number | null
+          expected_completion?: string | null
+          id?: string
+          landmark?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          notes?: string | null
+          num_floors?: number | null
+          owner_id: string
+          priority?: Database["public"]["Enums"]["lead_priority"]
+          project_size_sqft?: number | null
+          project_type?: Database["public"]["Enums"]["project_type"] | null
+          site_address?: string | null
+          site_name: string
+          stage?: Database["public"]["Enums"]["construction_stage"] | null
+          status?: Database["public"]["Enums"]["lead_status"]
+          updated_at?: string
+        }
+        Update: {
+          alternate_phone?: string | null
+          architect_name?: string | null
+          company_name?: string | null
+          contact_name?: string | null
+          contact_phone?: string | null
+          contractor_name?: string | null
+          created_at?: string
+          estimated_budget?: number | null
+          expected_completion?: string | null
+          id?: string
+          landmark?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          notes?: string | null
+          num_floors?: number | null
+          owner_id?: string
+          priority?: Database["public"]["Enums"]["lead_priority"]
+          project_size_sqft?: number | null
+          project_type?: Database["public"]["Enums"]["project_type"] | null
+          site_address?: string | null
+          site_name?: string
+          stage?: Database["public"]["Enums"]["construction_stage"] | null
+          status?: Database["public"]["Enums"]["lead_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      photos: {
+        Row: {
+          created_at: string
+          id: string
+          image_type: string
+          image_url: string
+          lead_id: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image_type?: string
+          image_url: string
+          lead_id: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_type?: string
+          image_url?: string
+          lead_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "photos_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          full_name: string | null
+          id: string
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          full_name?: string | null
+          id: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "sales_rep"
+      construction_stage:
+        | "Excavation"
+        | "Foundation"
+        | "RCC Structure"
+        | "Brickwork"
+        | "Plaster"
+        | "Waterproofing"
+        | "Electrical Rough-In"
+        | "Plumbing Rough-In"
+        | "Flooring"
+        | "Ceiling"
+        | "Painting"
+        | "Interior Fit-Out"
+        | "Façade Installation"
+        | "Final Finishing"
+        | "Handover"
+      lead_priority: "Hot" | "Warm" | "Cold"
+      lead_status:
+        | "New"
+        | "Qualified"
+        | "Quotation Sent"
+        | "Negotiation"
+        | "Follow-Up"
+        | "Converted"
+        | "Lost"
+        | "Dormant"
+      project_type:
+        | "Residential"
+        | "Commercial"
+        | "Retail"
+        | "Hospitality"
+        | "Institutional"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +462,43 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "sales_rep"],
+      construction_stage: [
+        "Excavation",
+        "Foundation",
+        "RCC Structure",
+        "Brickwork",
+        "Plaster",
+        "Waterproofing",
+        "Electrical Rough-In",
+        "Plumbing Rough-In",
+        "Flooring",
+        "Ceiling",
+        "Painting",
+        "Interior Fit-Out",
+        "Façade Installation",
+        "Final Finishing",
+        "Handover",
+      ],
+      lead_priority: ["Hot", "Warm", "Cold"],
+      lead_status: [
+        "New",
+        "Qualified",
+        "Quotation Sent",
+        "Negotiation",
+        "Follow-Up",
+        "Converted",
+        "Lost",
+        "Dormant",
+      ],
+      project_type: [
+        "Residential",
+        "Commercial",
+        "Retail",
+        "Hospitality",
+        "Institutional",
+      ],
+    },
   },
 } as const
