@@ -1,5 +1,5 @@
 {
-  "buildCommand": "npm run build",
-  "outputDirectory": ".output/public",
-  "framework": null
+  "installCommand": "npm install",
+  "buildCommand": "npx vinxi build",
+  "outputDirectory": ".vercel/output"
 }
