@@ -74,8 +74,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
+      { name: "apple-mobile-web-app-title", content: "FieldVoice" },
+      { name: "mobile-web-app-capable", content: "yes" },
+      { title: "FieldVoice CRM" },
       { name: "description", content: "Site Speak is a mobile-first PWA for construction sales reps to capture leads via voice, GPS, and photos." },
       { name: "author", content: "Lovable" },
       { property: "og:title", content: "Lovable App" },
@@ -89,10 +93,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/6eef38a1-95e8-432d-9d25-bfdb9ad88e86/id-preview-a5e701ae--f9cf2ba7-4657-4afc-84bf-ee9758b1c6c1.lovable.app-1778315554167.png" },
     ],
     links: [
-      {
-        rel: "stylesheet",
-        href: appCss,
-      },
+      { rel: "stylesheet", href: appCss },
+      { rel: "manifest", href: "/manifest.json" },
     ],
   }),
   shellComponent: RootShell,

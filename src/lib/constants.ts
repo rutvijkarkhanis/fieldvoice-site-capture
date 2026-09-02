@@ -1,4 +1,7 @@
-export const STAGES = ["Excavation","Foundation","RCC Structure","Brickwork","Plaster","Waterproofing","Electrical Rough-In","Plumbing Rough-In","Flooring","Ceiling","Painting","Interior Fit-Out","Façade Installation","Final Finishing","Handover"] as const;
+export const LEAD_TYPES = ["Architect","Contractor","Owner","Developer","Dealer"] as const;
+export const BOQ_STATUSES = ["Not Offered","Offered","Sent","Accepted","Rejected"] as const;
+
+export const STAGES =["Excavation","Foundation","RCC Structure","Brickwork","Plaster","Waterproofing","Electrical Rough-In","Plumbing Rough-In","Flooring","Ceiling","Painting","Interior Fit-Out","Façade Installation","Final Finishing","Handover"] as const;
 export const STATUSES = ["New","Qualified","Quotation Sent","Negotiation","Follow-Up","Converted","Lost","Dormant"] as const;
 export const PRIORITIES = ["Hot","Warm","Cold"] as const;
 export const PROJECT_TYPES = ["Residential","Commercial","Retail","Hospitality","Institutional"] as const;

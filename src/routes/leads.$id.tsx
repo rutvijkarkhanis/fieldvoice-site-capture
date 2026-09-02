@@ -5,8 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { priorityClass, statusClass, STATUSES } from "@/lib/constants";
-import { Phone, MessageCircle, MapPin, ExternalLink, Pencil, CalendarPlus, StickyNote, Camera } from "lucide-react";
+import { priorityClass, statusClass, STATUSES, BOQ_STATUSES } from "@/lib/constants";
+import { Phone, MessageCircle, MapPin, ExternalLink, Pencil, CalendarPlus, StickyNote, Camera, Copy, Check } from "lucide-react";
 import { format } from "date-fns";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
@@ -27,6 +27,8 @@ function Detail() {
   const { id } = Route.useParams();
   const qc = useQueryClient();
   const { user } = useAuth();
+
+  const [copied, setCopied] = useState(false);
 
   const { data } = useQuery({
     queryKey: ["lead", id],
@@ -64,14 +66,50 @@ function Detail() {
   const phone = l.contact_phone?.replace(/\D/g, "");
   const mapsUrl = l.latitude && l.longitude ? `https://www.google.com/maps/search/?api=1&query=${l.latitude},${l.longitude}` : null;
 
+  const buildWhatsAppMsg = () => {
+    const products = data.products.map((p) => `• ${p.product}`).join("\n");
+    const greeting = l.contact_name ? `Hi ${l.contact_name},` : "Hi,";
+    const lines = [
+      greeting,
+      "",
+      `I visited your site *${l.site_name}*${l.site_address ? ` at ${l.site_address}` : ""} recently.`,
+      "",
+      "As discussed, I can prepare a *FREE Bill of Quantities (BOQ)* for your project — no cost, no commitment.",
+      "",
+      "We supply quality construction materials *Pan India* with competitive pricing and timely delivery.",
+      ...(products ? ["\n*Materials you're interested in:*", products] : []),
+      ...(l.exact_requirement ? [`\n*Your requirement:*\n${l.exact_requirement}`] : []),
+      "",
+      "Shall I proceed with the BOQ? Please let me know a convenient time to connect.",
+      "",
+      "— Rutvij",
+    ];
+    return lines.join("\n");
+  };
+
+  const sendWhatsApp = () => {
+    const msg = buildWhatsAppMsg();
+    const wa = phone ? `https://wa.me/${phone.startsWith("91") ? phone : `91${phone}`}?text=${encodeURIComponent(msg)}` : null;
+    if (wa) { window.open(wa, "_blank"); return; }
+    navigator.clipboard.writeText(msg).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); toast.success("Message copied — paste into WhatsApp"); });
+  };
+
+  const copyTemplate = () => {
+    navigator.clipboard.writeText(buildWhatsAppMsg()).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); toast.success("Copied to clipboard"); });
+  };
+
   return (
     <div className="space-y-4">
       <Card className="border-2">
         <CardContent className="p-4 space-y-3">
           <div className="flex items-start justify-between gap-2">
             <h1 className="display text-2xl">{l.site_name}</h1>
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1 items-end">
               <Badge className={priorityClass(l.priority)}>{l.priority}</Badge>
+              {(l as any).lead_type && <Badge variant="outline">{(l as any).lead_type}</Badge>}
+              {(l as any).boq_status && (l as any).boq_status !== "Not Offered" && (
+                <Badge variant={(l as any).boq_status === "Accepted" ? "default" : "secondary"}>BOQ: {(l as any).boq_status}</Badge>
+              )}
             </div>
           </div>
           {l.stage && <div className="text-xs uppercase tracking-widest font-bold text-primary">{l.stage}</div>}
@@ -91,6 +129,16 @@ function Detail() {
             <Button asChild variant="outline" disabled={!mapsUrl}><a href={mapsUrl ?? "#"} target="_blank" rel="noreferrer"><ExternalLink className="h-4 w-4 mr-1" />Maps</a></Button>
           </div>
 
+          <div className="grid grid-cols-2 gap-2">
+            <Button onClick={sendWhatsApp} variant="default" className="bg-green-600 hover:bg-green-700 text-white">
+              <MessageCircle className="h-4 w-4 mr-1" />Send BOQ Template
+            </Button>
+            <Button onClick={copyTemplate} variant="outline">
+              {copied ? <Check className="h-4 w-4 mr-1" /> : <Copy className="h-4 w-4 mr-1" />}
+              {copied ? "Copied!" : "Copy Template"}
+            </Button>
+          </div>
+
           <div className="grid grid-cols-2 gap-2 pt-1">
             <Button asChild variant="default">
               <Link to="/leads/$id/edit" params={{ id }}><Pencil className="h-4 w-4 mr-1" />Edit Lead</Link>
@@ -98,12 +146,25 @@ function Detail() {
             <QuickActions leadId={id} userId={user?.id} onChange={refresh} />
           </div>
 
-          <div className="pt-2">
-            <div className="text-xs uppercase font-bold text-muted-foreground mb-1">Status</div>
-            <Select value={l.status} onValueChange={(v) => updateStatus.mutate(v)}>
-              <SelectTrigger className={statusClass(l.status)}><SelectValue /></SelectTrigger>
-              <SelectContent>{STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
-            </Select>
+          <div className="pt-2 grid grid-cols-2 gap-2">
+            <div>
+              <div className="text-xs uppercase font-bold text-muted-foreground mb-1">Status</div>
+              <Select value={l.status} onValueChange={(v) => updateStatus.mutate(v)}>
+                <SelectTrigger className={statusClass(l.status)}><SelectValue /></SelectTrigger>
+                <SelectContent>{STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div>
+              <div className="text-xs uppercase font-bold text-muted-foreground mb-1">BOQ Status</div>
+              <Select value={(l as any).boq_status ?? "Not Offered"} onValueChange={async (v) => {
+                await supabase.from("leads").update({ boq_status: v } as any).eq("id", id);
+                qc.invalidateQueries({ queryKey: ["lead", id] });
+                toast.success("BOQ status updated");
+              }}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>{BOQ_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
           </div>
         </CardContent>
       </Card>

@@ -11,7 +11,7 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Mic, MicOff, MapPin, Camera, Loader2, Save } from "lucide-react";
-import { STAGES, STATUSES, PRIORITIES, PROJECT_TYPES, PRODUCTS } from "@/lib/constants";
+import { STAGES, STATUSES, PRIORITIES, PROJECT_TYPES, PRODUCTS, LEAD_TYPES, BOQ_STATUSES } from "@/lib/constants";
 import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { compressImage } from "@/lib/image-utils";
@@ -24,6 +24,7 @@ export const Route = createFileRoute("/add")({
 type Form = {
   site_name: string; contact_name: string; contact_phone: string; alternate_phone: string;
   company_name: string; architect_name: string; contractor_name: string;
+  lead_type: string; boq_status: string;
   site_address: string; landmark: string;
   latitude: string; longitude: string;
   project_type: string; project_size_sqft: string; num_floors: string; estimated_budget: string; expected_completion: string;
@@ -36,6 +37,7 @@ type Form = {
 const empty: Form = {
   site_name: "", contact_name: "", contact_phone: "", alternate_phone: "",
   company_name: "", architect_name: "", contractor_name: "",
+  lead_type: "", boq_status: "Not Offered",
   site_address: "", landmark: "", latitude: "", longitude: "",
   project_type: "", project_size_sqft: "", num_floors: "", estimated_budget: "", expected_completion: "",
   stage: "", status: "New", priority: "Warm", notes: "", exact_requirement: "", followup_date: "",
@@ -148,6 +150,8 @@ function AddLead() {
         company_name: f.company_name || null,
         architect_name: f.architect_name || null,
         contractor_name: f.contractor_name || null,
+        lead_type: (f.lead_type || null) as any,
+        boq_status: (f.boq_status || null) as any,
         site_address: f.site_address || null,
         landmark: f.landmark || null,
         latitude: f.latitude ? Number(f.latitude) : null,
@@ -236,6 +240,20 @@ function AddLead() {
         <div className="grid grid-cols-2 gap-2">
           <Field label="Architect"><Input value={f.architect_name} onChange={(e) => set("architect_name", e.target.value)} /></Field>
           <Field label="Contractor"><Input value={f.contractor_name} onChange={(e) => set("contractor_name", e.target.value)} /></Field>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <Field label="Lead Type *">
+            <Select value={f.lead_type} onValueChange={(v) => set("lead_type", v)}>
+              <SelectTrigger><SelectValue placeholder="Who is this?" /></SelectTrigger>
+              <SelectContent>{LEAD_TYPES.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent>
+            </Select>
+          </Field>
+          <Field label="BOQ Status">
+            <Select value={f.boq_status} onValueChange={(v) => set("boq_status", v)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>{BOQ_STATUSES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+            </Select>
+          </Field>
         </div>
       </Section>
 
